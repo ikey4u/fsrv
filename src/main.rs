@@ -2,7 +2,9 @@ use std::{net::SocketAddr, path::PathBuf};
 
 use axum::{routing::post, Router};
 use clap::Parser;
-use tower_http::services::ServeDir;
+use tower_http::{services::ServeDir, trace::TraceLayer};
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Debug, Parser)]
 struct Cli {
@@ -15,6 +17,16 @@ struct Cli {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env()
+                .unwrap(),
+        )
+        .init();
+
     let cli = Cli::parse();
     let app = Router::new()
         .route(
@@ -24,6 +36,7 @@ async fn main() {
             }),
         )
         .fallback_service(ServeDir::new(&cli.root));
+    let app = app.layer(TraceLayer::new_for_http());
     let addr = format!("{}:{}", cli.host, cli.port);
     let addr = addr
         .parse::<SocketAddr>()
