@@ -243,6 +243,8 @@ dependencies = [
  "axum",
  "clap",
  "dunce",
+ "serde",
+ "serde_json",
  "tokio",
  "tower",
  "tower-http",
